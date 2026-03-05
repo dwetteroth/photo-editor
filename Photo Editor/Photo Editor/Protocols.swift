@@ -52,3 +52,8 @@ protocol StickersViewControllerDelegate {
 protocol ColorDelegate {
     func didSelectColor(color: UIColor)
 }
+
+enum UndoAction {
+    case drawingStroke(previousImage: UIImage?)
+    case subviewAdded(view: UIView)
+}

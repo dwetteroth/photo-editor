@@ -68,8 +68,17 @@ public final class PhotoEditorViewController: UIViewController {
     var activeTextView: UITextView?
     var imageViewToPan: UIImageView?
     var isTyping: Bool = false
-    
-    
+
+    // Undo
+    var undoStack: [UndoAction] = []
+    var drawingSnapshotBeforeStroke: UIImage? = nil
+    let maxUndoStackSize = 20
+
+    // UI for undo and shapes
+    var undoButton: UIButton!
+    var shapesButton: UIButton!
+    var shapeSelectionView: UIStackView!
+
     var stickersViewController: StickersViewController!
 
     //Register Custom font before we load XIB
@@ -103,6 +112,9 @@ public final class PhotoEditorViewController: UIViewController {
         configureCollectionView()
         stickersViewController = StickersViewController(nibName: "StickersViewController", bundle: Bundle(for: StickersViewController.self))
         hideControls()
+        setupUndoButton()
+        setupShapesButton()
+        setupShapeSelectionView()
     }
     
     func configureCollectionView() {
@@ -136,6 +148,114 @@ public final class PhotoEditorViewController: UIViewController {
         topGradient.isHidden = hide
         bottomToolbar.isHidden = hide
         bottomGradient.isHidden = hide
+        shapesButton?.isHidden = hide
+        if hide {
+            shapeSelectionView?.isHidden = true
+        }
+    }
+
+    // MARK: - Undo & Shapes UI Setup
+
+    func setupUndoButton() {
+        undoButton = UIButton(type: .system)
+        if #available(iOS 13.0, *) {
+            let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
+            undoButton.setImage(UIImage(systemName: "arrow.uturn.backward", withConfiguration: config), for: .normal)
+        } else {
+            undoButton.setTitle("Undo", for: .normal)
+        }
+        undoButton.tintColor = .white
+        undoButton.addTarget(self, action: #selector(undoButtonTapped), for: .touchUpInside)
+        undoButton.isHidden = true
+        undoButton.translatesAutoresizingMaskIntoConstraints = false
+        undoButton.layer.shadowColor = UIColor.black.cgColor
+        undoButton.layer.shadowOffset = CGSize(width: 1, height: 1)
+        undoButton.layer.shadowOpacity = 0.5
+        undoButton.layer.shadowRadius = 2
+        view.addSubview(undoButton)
+
+        NSLayoutConstraint.activate([
+            undoButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            undoButton.bottomAnchor.constraint(equalTo: bottomToolbar.topAnchor, constant: -12),
+            undoButton.widthAnchor.constraint(equalToConstant: 44),
+            undoButton.heightAnchor.constraint(equalToConstant: 44)
+        ])
+    }
+
+    func setupShapesButton() {
+        shapesButton = UIButton(type: .system)
+        if #available(iOS 13.0, *) {
+            let config = UIImage.SymbolConfiguration(pointSize: 18, weight: .medium)
+            shapesButton.setImage(UIImage(systemName: "square.on.circle", withConfiguration: config), for: .normal)
+        } else {
+            shapesButton.setTitle("Shapes", for: .normal)
+        }
+        shapesButton.tintColor = .white
+        shapesButton.addTarget(self, action: #selector(shapesButtonTapped), for: .touchUpInside)
+        shapesButton.translatesAutoresizingMaskIntoConstraints = false
+        shapesButton.layer.shadowColor = UIColor.black.cgColor
+        shapesButton.layer.shadowOffset = CGSize(width: 1, height: 1)
+        shapesButton.layer.shadowOpacity = 0.5
+        shapesButton.layer.shadowRadius = 2
+        view.addSubview(shapesButton)
+
+        NSLayoutConstraint.activate([
+            shapesButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
+            shapesButton.topAnchor.constraint(equalTo: topToolbar.bottomAnchor, constant: 8),
+            shapesButton.widthAnchor.constraint(equalToConstant: 44),
+            shapesButton.heightAnchor.constraint(equalToConstant: 44)
+        ])
+    }
+
+    func setupShapeSelectionView() {
+        let rectBtn = makeShapeButton(
+            systemName: "rectangle",
+            fallbackTitle: "[ ]",
+            action: #selector(addRectangle)
+        )
+        let circleBtn = makeShapeButton(
+            systemName: "circle",
+            fallbackTitle: "O",
+            action: #selector(addCircle)
+        )
+        let arrowBtn = makeShapeButton(
+            systemName: "arrow.right",
+            fallbackTitle: "->",
+            action: #selector(addArrow)
+        )
+
+        shapeSelectionView = UIStackView(arrangedSubviews: [rectBtn, circleBtn, arrowBtn])
+        shapeSelectionView.axis = .horizontal
+        shapeSelectionView.spacing = 4
+        shapeSelectionView.distribution = .fillEqually
+        shapeSelectionView.backgroundColor = UIColor.black.withAlphaComponent(0.7)
+        shapeSelectionView.layer.cornerRadius = 10
+        shapeSelectionView.clipsToBounds = true
+        shapeSelectionView.isLayoutMarginsRelativeArrangement = true
+        shapeSelectionView.layoutMargins = UIEdgeInsets(top: 4, left: 8, bottom: 4, right: 8)
+        shapeSelectionView.isHidden = true
+        shapeSelectionView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(shapeSelectionView)
+
+        NSLayoutConstraint.activate([
+            shapeSelectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -8),
+            shapeSelectionView.topAnchor.constraint(equalTo: shapesButton.bottomAnchor, constant: 4),
+            shapeSelectionView.heightAnchor.constraint(equalToConstant: 48)
+        ])
+    }
+
+    func makeShapeButton(systemName: String, fallbackTitle: String, action: Selector) -> UIButton {
+        let btn = UIButton(type: .system)
+        if #available(iOS 13.0, *) {
+            let config = UIImage.SymbolConfiguration(pointSize: 22, weight: .medium)
+            btn.setImage(UIImage(systemName: systemName, withConfiguration: config), for: .normal)
+        } else {
+            btn.setTitle(fallbackTitle, for: .normal)
+        }
+        btn.tintColor = .white
+        btn.addTarget(self, action: action, for: .touchUpInside)
+        btn.widthAnchor.constraint(equalToConstant: 48).isActive = true
+        return btn
     }
 }
 

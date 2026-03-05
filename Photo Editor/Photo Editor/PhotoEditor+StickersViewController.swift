@@ -51,24 +51,30 @@ extension PhotoEditorViewController: StickersViewControllerDelegate {
     
     func didSelectView(view: UIView) {
         self.removeStickersView()
-        
+
         view.center = canvasImageView.center
         self.canvasImageView.addSubview(view)
         //Gestures
         addGestures(view: view)
+        undoStack.append(.subviewAdded(view: view))
+        trimUndoStack()
+        updateUndoButtonVisibility()
     }
-    
+
     func didSelectImage(image: UIImage) {
         self.removeStickersView()
-        
+
         let imageView = UIImageView(image: image)
         imageView.contentMode = .scaleAspectFit
         imageView.frame.size = CGSize(width: 150, height: 150)
         imageView.center = canvasImageView.center
-        
+
         self.canvasImageView.addSubview(imageView)
         //Gestures
         addGestures(view: imageView)
+        undoStack.append(.subviewAdded(view: imageView))
+        trimUndoStack()
+        updateUndoButtonVisibility()
     }
     
     func stickersViewDidDisappear() {

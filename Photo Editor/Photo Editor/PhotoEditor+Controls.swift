@@ -57,7 +57,7 @@ extension PhotoEditorViewController {
         isTyping = true
         let textView = UITextView(frame: CGRect(x: 0, y: canvasImageView.center.y,
                                                 width: UIScreen.main.bounds.width, height: 30))
-        
+
         textView.textAlignment = .center
         textView.font = UIFont(name: "Helvetica", size: 30)
         textView.textColor = textColor
@@ -71,6 +71,9 @@ extension PhotoEditorViewController {
         textView.delegate = self
         self.canvasImageView.addSubview(textView)
         addGestures(view: textView)
+        undoStack.append(.subviewAdded(view: textView))
+        trimUndoStack()
+        updateUndoButtonVisibility()
         textView.becomeFirstResponder()
     }    
     
@@ -106,6 +109,8 @@ extension PhotoEditorViewController {
         for subview in canvasImageView.subviews {
             subview.removeFromSuperview()
         }
+        undoStack.removeAll()
+        updateUndoButtonVisibility()
     }
     
     @IBAction func continueButtonPressed(_ sender: Any) {
@@ -124,7 +129,7 @@ extension PhotoEditorViewController {
     
     func hideControls() {
         var controls = hiddenControls
-        
+
         for control in controls {
             if (control == "clear") {
                 clearButton.isHidden = true
@@ -142,5 +147,72 @@ extension PhotoEditorViewController {
                 textButton.isHidden = true
             }
         }
+    }
+
+    // MARK: - Undo
+
+    @objc func undoButtonTapped() {
+        performUndo()
+    }
+
+    func performUndo() {
+        guard let lastAction = undoStack.popLast() else { return }
+
+        switch lastAction {
+        case .drawingStroke(let previousImage):
+            canvasImageView.image = previousImage
+        case .subviewAdded(let view):
+            view.removeFromSuperview()
+        }
+        updateUndoButtonVisibility()
+    }
+
+    func updateUndoButtonVisibility() {
+        undoButton?.isHidden = undoStack.isEmpty
+    }
+
+    func trimUndoStack() {
+        while undoStack.count > maxUndoStackSize {
+            undoStack.removeFirst()
+        }
+    }
+
+    // MARK: - Shapes
+
+    @objc func shapesButtonTapped() {
+        shapeSelectionView?.isHidden.toggle()
+    }
+
+    @objc func addRectangle() {
+        placeShape(type: .rectangle)
+        shapeSelectionView?.isHidden = true
+    }
+
+    @objc func addCircle() {
+        placeShape(type: .circle)
+        shapeSelectionView?.isHidden = true
+    }
+
+    @objc func addArrow() {
+        placeShape(type: .arrow)
+        shapeSelectionView?.isHidden = true
+    }
+
+    func placeShape(type: ShapeView.Shape) {
+        let size: CGSize
+        switch type {
+        case .rectangle: size = CGSize(width: 150, height: 100)
+        case .circle:    size = CGSize(width: 120, height: 120)
+        case .arrow:     size = CGSize(width: 160, height: 80)
+        }
+
+        let shapeView = ShapeView(shape: type, color: drawColor, size: size)
+        shapeView.center = canvasImageView.center
+        canvasImageView.addSubview(shapeView)
+        addGestures(view: shapeView)
+
+        undoStack.append(.subviewAdded(view: shapeView))
+        trimUndoStack()
+        updateUndoButtonVisibility()
     }
 }

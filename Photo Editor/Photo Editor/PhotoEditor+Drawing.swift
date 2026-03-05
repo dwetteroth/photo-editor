@@ -17,6 +17,7 @@ extension PhotoEditorViewController {
             if let touch = touches.first {
                 lastPoint = touch.location(in: self.canvasImageView)
             }
+            drawingSnapshotBeforeStroke = canvasImageView.image
         }
             //Hide stickersVC if clicked outside it
         else if stickersVCIsVisible == true {
@@ -52,8 +53,12 @@ extension PhotoEditorViewController {
                 // draw a single point
                 drawLineFrom(lastPoint, toPoint: lastPoint)
             }
+            undoStack.append(.drawingStroke(previousImage: drawingSnapshotBeforeStroke))
+            drawingSnapshotBeforeStroke = nil
+            trimUndoStack()
+            updateUndoButtonVisibility()
         }
-        
+
     }
     
     func drawLineFrom(_ fromPoint: CGPoint, toPoint: CGPoint) {
