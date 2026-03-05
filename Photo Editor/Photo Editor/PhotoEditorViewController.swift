@@ -56,7 +56,7 @@ public final class PhotoEditorViewController: UIViewController {
     @objc public var hiddenControls : [NSString] = []
 
     var stickersVCIsVisible = false
-    var drawColor: UIColor = UIColor.black
+    var drawColor: UIColor = UIColor.red
     var textColor: UIColor = UIColor.white
     var isDrawing: Bool = false
     var lastPoint: CGPoint!
